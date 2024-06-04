@@ -1,15 +1,12 @@
-<p align="center">
-  <h3 align="center">Báo cáo đồ án cho môn lập trình máy học cho python - CS112</h3>
-  <p align="center">
-    Tác giả
-  </p>
-</p>
+# Báo cáo đồ án cho môn lập trình máy học cho python - CS116
+## Tác giả
 
-## Mục lục
+| STT | MSSV     | Họ và Tên                    | Github                                            | Email                    |
+| --- | -------- | ---------------------------- | ------------------------------------------------- | ------------------------ |
+| 1   | 22520801 | Nguyễn Tấn Lợi               | [maikusobu](https://github.com/maikusobu)         | <22520801@gm.uit.edu.vn> |
+| 2   |  |             |  |  |
 
-- [Introduction](#introduction)
-- [Feature engineer](#feature-engineer)
-- [Model](#model)
+
 
 ## Giới thiệu
 
@@ -25,12 +22,13 @@ Với việc thực hiện kỹ lưỡng cả hai yếu tố này, tôi tin rằ
 ## Mục tiêu 
 Mục tiêu của đồ án này này là thiết kế model dự đoán về khả năng vỡ nợ của khách hàng (default on loans) dựa vào dữ liệu nội bộ (của tổ chức) và bên ngoài của từng khách hàng
 Metric của cuộc thi sử dụng gini stability metric:
-
+<p align="center">
 $gini = 2 * AUC − 1$
-
+</p>
 Và chuẩn đo cuối cùng là:
-
+<p align="center">
 $stabilitymetric=mean(gini) + 88.0 × min(0,a) − 0.5 × std(residuals)$
+</p>
 
 Với $a$ là hệ số góc của đường thẳng hồi quy được tìm dựa trên dự đoán của mô hình.
 
@@ -45,7 +43,21 @@ Trước khi bắt đầu với việc gộp dữ liệu thì chúng tôi có bi
 - `[P, A]` sang `Float64`
 - `[M]` sang `String`
 - `[D]` hoặc `date_decision` sang ` Date` 
-
+```python
+def set_table_dtypes(df):
+        for col in df.columns:
+            if col in ["case_id", "WEEK_NUM", "num_group1", "num_group2"]:
+                df = df.with_columns(pl.col(col).cast(pl.Int64))
+            elif col in ["date_decision"]:
+                df = df.with_columns(pl.col(col).cast(pl.Date))
+            elif col[-1] in ("P", "A"):
+                df = df.with_columns(pl.col(col).cast(pl.Float64))
+            elif col[-1] in ("M",):
+                df = df.with_columns(pl.col(col).cast(pl.String))
+            elif col[-1] in ("D",):
+                df = df.with_columns(pl.col(col).cast(pl.Date))
+        return df
+```
 Xử lý gộp data với việc sinh ra thêm 2 đặc trưng `month_decision` và `weekday_decision` từ `date_decision`
 ```python
 df_base = (
@@ -61,6 +73,7 @@ df_base = (
 - Các cột có hậu tố "D" được tính toán sự chênh lệch ngày so với cột date_decision và chuyển đổi thành số ngày (Float32).
 - Các cột chứa năm (year) được tính toán sự chênh lệch năm so với năm của date_decision và chuyển đổi thành số nguyên (Int32).
 - Cuối cùng, các cột không cần thiết như date_decision và MONTH được loại bỏ.
+
 ```python
 def handle_dates(df):
         for col in df.columns:
@@ -93,7 +106,6 @@ def filter_cols(df):
         
         return df
 ```
-- Xử lý các cột có độ tương quan trên 0.8
 
 #### Tạo các biểu thức tổng hợp
 Khi bắt đầu gộp dữ liệu, với bộ dữ liệu là depth 1 hoặc 2, quá trình sẽ thực hiện sinh các đặc trưng tổng hợp như sau:
@@ -102,6 +114,73 @@ Khi bắt đầu gộp dữ liệu, với bộ dữ liệu là depth 1 hoặc 2,
 - Đặc trưng có hậu tố ` M` : Sinh các cột chuỗi với biểu thức mode (giá trị xuất hiện nhiều nhất) và giá trị lớn nhất (max).
 - Đặc trưng có hậu tố `D` : Sinh các cột ngày tháng với các biểu thức như giá trị lớn nhất (max), giá trị đầu tiên (first), và giá trị trung bình (mean).
 - Các cột có hậu tố `T, L` hoặc chứa `num_group` : Sinh các cột với biểu thức tổng hợp như giá trị lớn nhất (max) và giá trị đầu tiên (first).
+
+#### Xử lý gom nhóm
+
+##### Gom nhóm các cột theo số lượng giá trị khuyết
+- Tạo một DataFrame chỉ chứa các giá trị khuyết (NaN) của các cột không phải là 'category'.
+- Nhóm các cột theo số lượng giá trị khuyết và lưu vào từ điển nans_groups.
+```python
+nans_df = df_train[nums].isna()
+nans_groups = {}
+for col in nums:
+    cur_group = nans_df[col].sum()
+    try:
+        nans_groups[cur_group].append(col)
+    except:
+        nans_groups[cur_group] = [col]
+del nans_df; x = gc.collect()
+```
+##### Gom nhóm theo độ tương quan của cát cột
+- Nhóm các cột có tương quan cao hơn ngưỡng cho trước (threshold=0.8). Mỗi nhóm sẽ chứa các cột có mối tương quan lớn hơn hoặc bằng 0.8 với nhau.
+```python
+def group_columns_by_correlation(matrix, threshold=0.8):
+    correlation_matrix = matrix.corr()
+    groups = []
+    remaining_cols = list(matrix.columns)
+    while remaining_cols:
+        col = remaining_cols.pop(0)
+        group = [col]
+        correlated_cols = [col]
+        for c in remaining_cols:
+            if correlation_matrix.loc[col, c] >= threshold:
+                group.append(c)
+                correlated_cols.append(c)
+        groups.append(group)
+        remaining_cols = [c for c in remaining_cols if c not in correlated_cols]
+    return groups
+```
+##### Chọn các cột cần sử dụng
+- Đối với mỗi nhóm cột có cùng số lượng giá trị khuyết, nếu nhóm có nhiều hơn một cột, sẽ tiếp tục nhóm các cột dựa trên mối tương quan.
+  Sau đó, chọn cột đại diện cho mỗi nhóm và thêm vào danh sách uses.
+  Nếu nhóm chỉ có một cột, thêm cột đó trực tiếp vào danh sách uses.
+```python
+uses = []
+for k, v in nans_groups.items():
+    if len(v) > 1:
+        Vs = nans_groups[k]
+        grps = group_columns_by_correlation(df_train[Vs], threshold=0.8)
+        use = reduce_group(grps)
+        uses = uses + use
+    else:
+        uses = uses + v
+    print('####### NAN count =', k)
+```
+- Trong đó hàm reduce_grop(grps) nhận vào các nhóm cột và chọn một cột đại diện cho mỗi nhóm dựa trên số lượng giá trị duy nhất (nunique). Cột có số lượng giá trị duy nhất    lớn nhất sẽ được chọn làm đại diện cho nhóm.
+```python
+def reduce_group(grps):
+    use = []
+    for g in grps:
+        mx = 0; vx = g[0]
+        for gg in g:
+            n = df_train[gg].nunique()
+            if n > mx:
+                mx = n
+                vx = gg
+        use.append(vx)
+    print('Use these', use)
+    return use
+```
 
 #### Xử lý tạo mới đặc trưng
 - Sinh thêm đặc trưng era từ first_birth_259D để xác định phạm vi giai đoạn:
@@ -131,7 +210,11 @@ Notebook sử dụng hai mô hình chính là **lgboost** và **catboost**. Sau 
 X = df_train.drop(columns=["target", "case_id", "week_num"])
 y = df_train["target"]
 ```
-
+Với việc phân nhóm, và bộ dữ liệu rất mất cân bằng nên nhóm chúng tôi sẽ sử dụng `StratifiedGroupKFold`
+bởi vì `StratifiedGroupKFold` là một biến thể của k-fold cross-validation được thiết kế đặc biệt để xử lý các tình huống mà dữ liệu không chỉ mất cân bằng về các lớp (labels) mà còn có thể chứa các nhóm (groups) mà ta muốn đảm bảo rằng các nhóm này không bị phân chia vào các tập huấn luyện và kiểm tra cùng một lúc. 
+```python
+cv = StratifiedGroupKFold(n_splits=5, shuffle=False)
+```
 Như đã trình bày, tác giả sử dụng hai loại mô hình chính là lgboost và catboost. Tuy nhiên, một điểm cần lưu ý là với mỗi loại mô hình, có nhiều mô hình được tạo ra (instance của class lagboost và catboost) để predict cho từng week_num một, ta có hai danh sách lưu các mô hình cho hai loại mô hình:
 
 ```python
@@ -223,6 +306,7 @@ Ngoài notebook ở trên ra, chúng tôi có những thử nghiệm trên các 
 * catboost_lightgbm_ensemble e463ae : $E$
 * Home Credit : AutoML more features : $F$
 * Home Credit (LGB + Cat ensemble) : $G$
+* Essemble(cat + lgbm) : $H$
 
 Kí hiệu $T$ + ... ám chỉ sử dụng note book $T$ và áp dụng thay đổi khác. Có một số notebook kết quả gốc không thực sự ấn tượng nên qua thử nghiệm không được lấy làm gốc cải tiến thêm, các kết quả bên dưới là trên private test :
 
@@ -233,3 +317,4 @@ Kí hiệu $T$ + ... ám chỉ sử dụng note book $T$ và áp dụng thay đ�
 |$E$ + xgb(nestimator=1200)|MLE|
 |$D$ + "class_weight" :"balanced", auto_class_weights='Balanced',|0.45401|
 |$D$ + n_splits=10 + "random_state": 3107 + random_seed = 3107|0.50816|
+|$H$ + thêm feature "birth_year" từ "first_birth_259D", lọc outlier week_num = 0, year = 356|0.46785|
