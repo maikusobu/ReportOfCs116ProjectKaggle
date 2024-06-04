@@ -4,7 +4,7 @@
 | STT | MSSV     | Họ và Tên                    | Github                                            | Email                    |
 | --- | -------- | ---------------------------- | ------------------------------------------------- | ------------------------ |
 | 1   | 22520801 | Nguyễn Tấn Lợi               | [maikusobu](https://github.com/maikusobu)         | <22520801@gm.uit.edu.vn> |
-| 2   |  |             |  |  |
+| 2   | 22520847 | Nguyễn Đặng Đức Mạnh         | [AkiraOtok](https://github.com/AakiraOtok)        | <22520847@gm.uit.edu.vn> |
 
 
 
