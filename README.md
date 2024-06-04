@@ -224,12 +224,12 @@ Ngoài notebook ở trên ra, chúng tôi có những thử nghiệm trên các 
 * Home Credit : AutoML more features : $F$
 * Home Credit (LGB + Cat ensemble) : $G$
 
-Kí hiệu $T$ + ... ám chỉ sử dụng note book $T$ và áp dụng thay đổi khác. Có một số notebook kết quả gốc không thực sự ấn tượng nên qua thử nghiệm không được lấy làm gốc cải tiến thêm, các kết quả bên dưới là trên public test :
+Kí hiệu $T$ + ... ám chỉ sử dụng note book $T$ và áp dụng thay đổi khác. Có một số notebook kết quả gốc không thực sự ấn tượng nên qua thử nghiệm không được lấy làm gốc cải tiến thêm, các kết quả bên dưới là trên private test :
 
 | What     | Result   | 
 | -------- | -------- |
-|$E$ + xgb(nestimator=100)|0.58431|
+|$E$ + xgb(nestimator=100)|0.51233|
 |$E$ + xgb(nestimator=2000)|MLE|
 |$E$ + xgb(nestimator=1200)|MLE|
-|$D$ + "class_weight" :"balanced", auto_class_weights='Balanced',|0.54459|
-|$D$ + n_splits=10 + "random_state": 3107 + random_seed = 3107|0.58784|
+|$D$ + "class_weight" :"balanced", auto_class_weights='Balanced',|0.45401|
+|$D$ + n_splits=10 + "random_state": 3107 + random_seed = 3107|0.50816|
