@@ -1,4 +1,4 @@
-# Báo cáo đồ án cho môn lập trình máy học cho python - CS116
+# Báo cáo đồ án Lập trình máy học cho Python - CS116
 ## Tác giả
 
 | STT | MSSV     | Họ và Tên                    | Github                                            | Email                    |
