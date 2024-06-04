@@ -13,20 +13,26 @@
 
 ## Giới thiệu
 
-Từ kinh nghiệm của tôi trong việc áp dụng Machine Learning, tôi nhận thấy rằng cuộc thi Home Credit - Credit Risk Model Stability là một trong những thử thách phức tạp nhất cho tôi cho đến nay. Dữ liệu được cung cấp là một tập hợp lớn, chứa nhiều thông tin từ nhiều nguồn và phản ánh thực tế về tài chính của các cá nhân. Để giải quyết bài toán này, cần có kiến thức về tài chính, khả năng phân tích, và khả năng hiểu các dữ liệu trong lĩnh vực ngân hàng.
+Từ những kinh nghiệm thực tế trong việc áp dụng Machine Learning, tôi đã chứng kiến cuộc thi Home Credit - Credit Risk Model Stability trở thành một trong những thách thức phức tạp nhất mà tôi từng gặp. Dữ liệu cung cấp rất lớn và đa dạng, bao gồm thông tin từ nhiều nguồn khác nhau và phản ánh đời sống tài chính của các cá nhân. Để giải quyết bài toán này, ta cần phải có kiến thức vững chắc về lĩnh vực tài chính, khả năng phân tích sâu sắc và hiểu biết sâu về dữ liệu trong lĩnh vực ngân hàng.
 
-Dựa trên những hiểu biết của tôi về lĩnh vực tài chính cũng như những bài toán machine learning tương tự. Tôi cho rằng có hai điều rất quan trọng để xây dựng tốt mô hình cho cuộc thi này : 
+Dựa trên sự hiểu biết của tôi, tôi nhận thấy có hai yếu tố cực kỳ quan trọng để xây dựng một mô hình xuất sắc cho cuộc thi này:
 
-1. Thực hiện tốt Feature Engineering
-2. Sử dụng kết hợp đa các mô hình Machine learning.
+* Thực hiện Feature Engineering: Việc tạo ra những đặc trưng (features) tốt từ dữ liệu gốc là một yếu tố quan trọng đối với thành công của mô hình. Quá trình này đòi hỏi sự sáng tạo và khả năng hiểu biết sâu về tài chính, để tìm ra những thông tin quan trọng, loại bỏ nhiễu và chọn lọc những đặc trưng quan trọng nhất để đưa vào mô hình.
+* Sử dụng sự kết hợp đa dạng của các mô hình Machine Learning: Thay vì dựa chỉ vào một mô hình duy nhất, tôi tin rằng sự kết hợp giữa nhiều mô hình khác nhau có thể mang lại kết quả tốt hơn. Bằng cách sử dụng các thuật toán và phương pháp khác nhau, ta có thể khai thác sự mạnh mẽ của từng mô hình và tận dụng đa dạng hóa trong việc dự đoán rủi ro tín dụng.
 
-Mục tiêu của đồ án này này là thiết kế model dự đoán về khả năng vở nợ của khách hàng (default on loans) dựa vào dữ liệu nội bộ (của tổ chức) và bên ngoài của từng khách hàng
+Với việc thực hiện kỹ lưỡng cả hai yếu tố này, tôi tin rằng ta có thể xây dựng một mô hình ổn định và hiệu quả cho cuộc thi Home Credit - Credit Risk Model Stability.
+
+## Mục tiêu 
+Mục tiêu của đồ án này này là thiết kế model dự đoán về khả năng vỡ nợ của khách hàng (default on loans) dựa vào dữ liệu nội bộ (của tổ chức) và bên ngoài của từng khách hàng
 Metric của cuộc thi sử dụng gini stability metric:
-<p style="text-align: center; font-size: small; font-style: italic;">gini = 2 × AUC − 1</p>
+
+$gini = 2 * AUC − 1$
+
 Và chuẩn đo cuối cùng là:
-<p  style="text-align: center; font-size: small; font-style: italic">
-stability metric=mean(gini) + 88.0 × min(0,a) − 0.5 × std(residuals)
-</p>
+
+$stabilitymetric=mean(gini) + 88.0 × min(0,a) − 0.5 × std(residuals)$
+
+Với $a$ là hệ số góc của đường thẳng hồi quy được tìm dựa trên dự đoán của mô hình.
 
 Về dữ liệu, dữ liệu có một sự đa dạng ổn định, phù hợp cho mục tiêu của thiết kế model, trong đó có sự đặc biệt ở tập dữ liệu đó là được phân chia dựa trên giá trị `depth`: 
 - depth = 0. Những đặc trưng tĩnh với từng `case_id` (gender, age ...)
@@ -113,13 +119,13 @@ df_base = df_base.with_columns(((pl.col("first_birth_259D") / 10).floor() * 10).
 
 ## Base Model
 
-Chúng tôi dựa trên mô hình được công bố trên notebook : Credit Risk Prediction with LightGBM and C.
+Mô hình tốt nhất của chúng tôi dựa trên mô hình được công bố trên notebook : Home Credit (LGB + Cat ensemble).
 
-Mô hình gốc sử dụng hai mô hình chính là **lgboost** và **catboost**. Sau đó sử dụng **VotingModel** để kết hợp các kết quả dự đoán. Các chi tiết được mô tả cụ thể bên dưới đây : 
+Notebook sử dụng hai mô hình chính là **lgboost** và **catboost**. Sau đó sử dụng **VotingModel** để kết hợp các kết quả dự đoán. Các chi tiết được mô tả cụ thể bên dưới đây : 
 
 ### Về cách khởi tạo các mô hình
 
-Đầu tiên, lược bỏ cột 'target', 'case_id' và 'week_num' :
+Đầu tiên, lược bỏ cột 'target', 'case_id' và 'week_num' do các thông tin này sẽ bị che đi trong tập test :
 
 ```python 
 X = df_train.drop(columns=["target", "case_id", "week_num"])
@@ -152,74 +158,44 @@ Sau đó, đối với mỗi dữ liệu phân theo week_num, ta tạo và huấ
     val_pool = Pool(X_valid, y_valid, cat_features=cat_cols)
 
     clf = CatBoostClassifier(
-        best_model_min_trees = 1000,
-        boosting_type = "Plain",
-        eval_metric = "AUC",
-        iterations = est_cnt,
-        learning_rate = 0.05,
-        l2_leaf_reg = 10,
-        max_leaves = 64,
-        random_seed = 42,
-        task_type = "GPU",
-        use_best_model = True
-    )
-    clf.fit(train_pool, eval_set=val_pool, verbose=False)
+    eval_metric='AUC',
+    task_type='GPU',
+    learning_rate=0.03,
+    iterations=n_est)
+    clf.fit(train_pool, eval_set=val_pool, verbose=300)
     fitted_models_cat.append(clf)
 ```
 
-Đối với lgboost, hyper param được dùng khác nhau cho mỗi lần lặp chẵn hoặc lẻ:
+Tương tự đối với lgb
 
 ```python
-    if iter_cnt % 2 == 0:
-        model = lgb.LGBMClassifier(**params1)
-    else:
-        model = lgb.LGBMClassifier(**params2)
-
+    model = lgb.LGBMClassifier(**params)
     model.fit(
-        X_train,
-        y_train,
-        eval_set=[(X_valid, y_valid)],
-        callbacks=[lgb.log_evaluation(100), lgb.early_stopping(100)],
-    )
+        X_train, y_train,
+        eval_set = [(X_valid, y_valid)],
+        callbacks = [lgb.log_evaluation(200), lgb.early_stopping(100)] )
     fitted_models_lgb.append(model)
 ```
 
-Hyper param cho catboost là : 
+Hyper param cho lgb là : 
 
 ```python 
-params1 = {
+params = {
     "boosting_type": "gbdt",
-    "colsample_bynode": 0.8,
-    "colsample_bytree": 0.8,
-    "device": device,
-    "extra_trees": True,
+    "objective": "binary",
+    "metric": "auc",
+    "max_depth": 10,  
     "learning_rate": 0.05,
-    "l1_regularization": 0.1,
-    "l2_regularization": 10,
-    "max_depth": 20,
-    "metric": "auc",
-    "n_estimators": 2000,
-    "num_leaves": 64,
-    "objective": "binary",
-    "random_state": 42,
-    "verbose": -1,
-}
-
-params2 = {
-    "boosting_type": "gbdt",
-    "colsample_bynode": 0.8,
+    "n_estimators": 2000,  
     "colsample_bytree": 0.8,
-    "device": device,
-    "extra_trees": True,
-    "learning_rate": 0.03,
-    "l1_regularization": 0.1,
-    "l2_regularization": 10,
-    "max_depth": 16,
-    "metric": "auc",
-    "n_estimators": 2000,
-    "num_leaves": 54,
-    "objective": "binary",
+    "colsample_bynode": 0.8,
+    "verbose": -1,
     "random_state": 42,
+    "reg_alpha": 0.1,
+    "reg_lambda": 10,
+    "extra_trees":True,
+    'num_leaves':64,
+    "device": device, 
     "verbose": -1,
 }
 ```
@@ -227,20 +203,33 @@ params2 = {
 Sau khi huấn luyện mô hình, sử dụng một VotingModel để đưa ra dự đoán, VotingModel chỉ đơn giản là lấy mean của các dự đoán : 
 
 ```python 
-class VotingModel(BaseEstimator, ClassifierMixin):
-    ...
-    def predict_proba(self, X):
-        y_preds = [estimator.predict_proba(X) for estimator in self.estimators]
+def predict_proba(self, X):
+        
+        y_preds = [estimator.predict_proba(X) for estimator in self.estimators[:5]]
+        
+        X[cat_cols] = X[cat_cols].astype("category")
+        y_preds += [estimator.predict_proba(X) for estimator in self.estimators[5:]]
+        
         return np.mean(y_preds, axis=0)
 ```
 
 ## Các lần thử
 
+Ngoài notebook ở trên ra, chúng tôi có những thử nghiệm trên các note book khác, chúng tôi sẽ kí hiệu cho từng note book đó để tiện theo dõi : 
+* Home Credit Risk Mode: utility scripts : $A$
+* seed=3107 is what you need : $B$
+* Home Credit - Credit Risk Model Stability : $C$
+* Fork of Credit Risk Prediction with LightGBM and C : $D$
+* catboost_lightgbm_ensemble e463ae : $E$
+* Home Credit : AutoML more features : $F$
+* Home Credit (LGB + Cat ensemble) : $G$
 
+Kí hiệu $T$ + ... ám chỉ sử dụng note book $T$ và áp dụng thay đổi khác. Có một số notebook kết quả gốc không thực sự ấn tượng nên qua thử nghiệm không được lấy làm gốc cải tiến thêm, các kết quả bên dưới là trên public test :
 
 | What     | Result   | 
 | -------- | -------- |
-| random_seed = 3107     | 0.57     |
-| best_model_min_trees = 1200 | MLE |
-| auto_weight and class_weight| 0.544|
-| add xgboost| MLE |
+|$E$ + xgb(nestimator=100)|0.58431|
+|$E$ + xgb(nestimator=2000)|MLE|
+|$E$ + xgb(nestimator=1200)|MLE|
+|$D$ + "class_weight" :"balanced", auto_class_weights='Balanced',|0.54459|
+|$D$ + n_splits=10 + "random_state": 3107 + random_seed = 3107|0.58784|
